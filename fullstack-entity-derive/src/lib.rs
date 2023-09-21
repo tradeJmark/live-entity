@@ -1,7 +1,10 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote, quote_spanned};
-use syn::{Data, DataStruct, DeriveInput, Error, Field, Fields, FieldsNamed, ImplItemFn, parse_macro_input, parse_quote, parse_quote_spanned};
 use syn::spanned::Spanned;
+use syn::{
+    parse_macro_input, parse_quote, parse_quote_spanned, Data, DataStruct, DeriveInput, Error,
+    Field, Fields, FieldsNamed, ImplItemFn,
+};
 
 #[proc_macro_derive(Entity, attributes(entity_id))]
 pub fn derive_entity(stream: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -14,7 +17,7 @@ pub fn derive_entity(stream: proc_macro::TokenStream) -> proc_macro::TokenStream
 
     output.extend(match id {
         Ok(id_field) => impl_entity(name, id_field).into(),
-        Err(e) => e.into_compile_error()
+        Err(e) => e.into_compile_error(),
     });
     output.into()
 }
@@ -23,7 +26,10 @@ pub fn derive_entity(stream: proc_macro::TokenStream) -> proc_macro::TokenStream
 pub fn derive_updatable(stream: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(stream as DeriveInput);
     let name = &input.ident;
-    let fields = named_fields_of_struct(input_as_struct(&input)).named.iter().collect();
+    let fields = named_fields_of_struct(input_as_struct(&input))
+        .named
+        .iter()
+        .collect();
     impl_updatable(name, &fields).into()
 }
 
@@ -87,7 +93,8 @@ fn gen_update_name(name: &Ident) -> Ident {
 }
 
 fn gen_update_fields(fields: &Vec<&Field>) -> Vec<Field> {
-    fields.iter()
+    fields
+        .iter()
         .map(|&f| {
             let mut update_field = f.clone();
             let original_type = &f.ty;
@@ -98,7 +105,8 @@ fn gen_update_fields(fields: &Vec<&Field>) -> Vec<Field> {
 }
 
 fn gen_update_builder_fns(fields: &Vec<&Field>) -> Vec<ImplItemFn> {
-    fields.iter()
+    fields
+        .iter()
         .map(|&f| {
             let name = &f.ident;
             let ty = &f.ty;
@@ -108,39 +116,42 @@ fn gen_update_builder_fns(fields: &Vec<&Field>) -> Vec<ImplItemFn> {
                     self
                 }
             }
-        }).collect()
+        })
+        .collect()
 }
 
 fn gen_update_fn_body(fields: &Vec<&Field>, with_name: &Ident) -> TokenStream {
-    let lines = fields.iter()
-        .map(|&f| {
-            let id = &f.ident;
-            quote_spanned! {f.ty.span()=>
-                fullstack_entity::Updatable::update(&mut self.#id, &#with_name.#id);
-            }
-        });
+    let lines = fields.iter().map(|&f| {
+        let id = &f.ident;
+        quote_spanned! {f.ty.span()=>
+            fullstack_entity::Updatable::update(&mut self.#id, &#with_name.#id);
+        }
+    });
     quote! { #(#lines)* }
 }
 
 fn input_as_struct(input: &DeriveInput) -> &DataStruct {
     match &input.data {
         Data::Struct(s) => s,
-        _ => unimplemented!("Can only derive for struct.")
+        _ => unimplemented!("Can only derive for struct."),
     }
 }
 
 fn named_fields_of_struct(s: &DataStruct) -> &FieldsNamed {
     match &s.fields {
         Fields::Named(named) => named,
-        _ => unimplemented!("Can only derive for structs with named fields.")
+        _ => unimplemented!("Can only derive for structs with named fields."),
     }
 }
 
 fn extract_id_field(fields: &FieldsNamed) -> (Result<&Field, Error>, Vec<&Field>) {
-    let (ids, others): (Vec<_>, Vec<_>) = fields.named.iter().partition(|f| {
-        f.attrs.iter().any(|a| a.path().is_ident("entity_id"))
-    });
-    let id = ids.into_iter().next()
-        .ok_or(Error::new(fields.span(), "No ID field specified for Entity."));
+    let (ids, others): (Vec<_>, Vec<_>) = fields
+        .named
+        .iter()
+        .partition(|f| f.attrs.iter().any(|a| a.path().is_ident("entity_id")));
+    let id = ids.into_iter().next().ok_or(Error::new(
+        fields.span(),
+        "No ID field specified for Entity.",
+    ));
     (id, others)
 }

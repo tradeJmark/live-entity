@@ -1,13 +1,13 @@
-use fullstack_entity_derive::Entity;
-use serde::{Serialize, Deserialize};
 use fullstack_entity::{Entity, Updatable};
+use fullstack_entity_derive::Entity;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Entity)]
 struct Article {
     #[entity_id]
     id: i32,
     title: String,
-    body: String
+    body: String,
 }
 
 #[test]
@@ -18,7 +18,7 @@ fn test_derived_entity() {
     let mut article = Article {
         id,
         title: title.clone(),
-        body: body.clone()
+        body: body.clone(),
     };
 
     assert_eq!(&id, article.get_id());
@@ -26,7 +26,7 @@ fn test_derived_entity() {
     let same_by_eq = Article {
         id,
         title: "An examination of the futility of searching for the perfect title".to_owned(),
-        body: "I mean, it's just not worth the time.".to_owned()
+        body: "I mean, it's just not worth the time.".to_owned(),
     };
     assert_eq!(article, same_by_eq);
 

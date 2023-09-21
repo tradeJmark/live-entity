@@ -1,7 +1,7 @@
-use std::hash::Hash;
+use crate::Updatable;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use crate::Updatable;
+use std::hash::Hash;
 
 pub trait Entity: Serialize + DeserializeOwned + Clone + Eq + Updatable<Self::Update> {
     type Update;
