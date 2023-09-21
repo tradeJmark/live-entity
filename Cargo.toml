@@ -1,0 +1,10 @@
+[package]
+name = "fullstack-entity"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+fullstack-entity-derive = { path = "fullstack-entity-derive" }
+serde = { version = "1.0.188", features = ["derive"] }
