@@ -1,5 +1,4 @@
-use crate::backend::StoreOf;
-use crate::{Entity, Event};
+use crate::{Entity, Event, StoreOf};
 use async_trait::async_trait;
 use futures_util::StreamExt;
 use mongodb::bson::{doc, from_bson, from_document, to_bson, to_document};

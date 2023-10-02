@@ -49,7 +49,7 @@ fn get_store_trait_name(name: &Ident) -> Ident {
 impl StorageWrapperArgs {
     fn gen_stores_of(&self) -> impl Iterator<Item = Type> + '_ {
         self.0.iter().map(|StorageWrapperArg { name: _, ty }| {
-            parse_quote! { fullstack_entity::backend::StoreOf<#ty> }
+            parse_quote! { fullstack_entity::StoreOf<#ty> }
         })
     }
     fn gen_entity_functions(&self) -> impl Iterator<Item = ImplItemFn> + '_ {
@@ -67,17 +67,17 @@ impl StorageWrapperArgs {
                 },
                 parse_quote! {
                     pub async fn #update_fn(&self, id: &<#ty as fullstack_entity::Entity>::ID, update: &<#ty as fullstack_entity::Entity>::Update) -> core::result::Result<(), std::boxed::Box<dyn std::error::Error>> {
-                        fullstack_entity::backend::StoreOf::<#ty>::update(&*self.#store_ident, id, update).await
+                        fullstack_entity::StoreOf::<#ty>::update(&*self.#store_ident, id, update).await
                     }
                 },
                 parse_quote! {
                     pub async fn #delete_fn(&self, id: &<#ty as fullstack_entity::Entity>::ID) -> core::result::Result<(), std::boxed::Box<dyn std::error::Error>> {
-                        fullstack_entity::backend::StoreOf::<#ty>::delete(&*self.#store_ident, id).await
+                        fullstack_entity::StoreOf::<#ty>::delete(&*self.#store_ident, id).await
                     }
                 },
                 parse_quote! {
                     pub async fn #watch_fn(&self, channel: tokio::sync::broadcast::Sender<fullstack_entity::Event<#ty>>) -> core::result::Result<(), std::boxed::Box<dyn std::error::Error>> {
-                        fullstack_entity::backend::StoreOf::<#ty>::watch(&*self.#store_ident, channel).await
+                        fullstack_entity::StoreOf::<#ty>::watch(&*self.#store_ident, channel).await
                     }
                 }
             ]

@@ -1,5 +1,5 @@
 #![cfg(feature = "mongo")]
-use fullstack_entity::backend::mongo::{MongoEntity, MongoEntityStorage};
+use fullstack_entity::mongo::{MongoEntity, MongoEntityStorage};
 use fullstack_entity::derive::{storage_wrapper, Entity};
 use fullstack_entity::Event;
 use fullstack_entity_derive::MongoStorage;

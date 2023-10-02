@@ -5,14 +5,10 @@ mod entity;
 use entity::*;
 mod updatable;
 use updatable::*;
-#[cfg(feature = "backend")]
 mod storage_wrapper;
-#[cfg(feature = "backend")]
 use storage_wrapper::*;
-#[cfg(feature = "backend")]
-use syn::ItemStruct;
 
-use syn::{parse_macro_input, DeriveInput};
+use syn::{parse_macro_input, DeriveInput, ItemStruct};
 
 #[proc_macro_derive(Entity, attributes(entity_id))]
 pub fn derive_entity(stream: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -41,7 +37,6 @@ pub fn derive_updatable(stream: proc_macro::TokenStream) -> proc_macro::TokenStr
     impl_updatable(name, &fields).into()
 }
 
-#[cfg(feature = "backend")]
 #[proc_macro_attribute]
 pub fn storage_wrapper(
     args: proc_macro::TokenStream,

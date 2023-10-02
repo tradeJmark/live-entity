@@ -9,5 +9,8 @@ pub use event::*;
 
 pub use fullstack_entity_derive as derive;
 
-#[cfg(feature = "backend")]
-pub mod backend;
+mod store_of;
+pub use store_of::*;
+
+#[cfg(feature = "mongo")]
+pub mod mongo;
