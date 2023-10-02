@@ -1,10 +1,11 @@
 #![cfg(feature = "mongo")]
-use fullstack_entity::mongo::{MongoEntity, MongoEntityStorage};
 use fullstack_entity::derive::{storage_wrapper, Entity};
+use fullstack_entity::mongo::{MongoEntity, MongoEntityStorage};
 use fullstack_entity::Event;
 use fullstack_entity_derive::MongoStorage;
 use serde::{Deserialize, Serialize};
 use std::env;
+use std::time::Duration;
 use tokio::sync::broadcast::channel;
 #[derive(Entity, Clone, Serialize, Deserialize, Debug)]
 struct Employee {
@@ -28,7 +29,6 @@ struct StockItem {
 #[mongo_collections{"employees": Employee, "stock_items": StockItem}]
 struct Storage;
 
-#[cfg(feature = "mongo")]
 #[tokio::test]
 #[ignore]
 async fn test_mongo_connector() {
@@ -37,6 +37,15 @@ async fn test_mongo_connector() {
     let storage = Storage::of_mongo(connection_string, db, None)
         .await
         .expect("Error creating DB connection.");
+
+    storage
+        .delete_employee(None)
+        .await
+        .expect("Failed to clear employees table");
+    storage
+        .delete_stock_item(None)
+        .await
+        .expect("Failed to clear employees table");
 
     let hank_id = "Hank Hill".to_owned();
     let hank = Employee {
@@ -50,6 +59,11 @@ async fn test_mongo_connector() {
         item_name: propane_id.clone(),
         price: 100.200,
     };
+    let propane_accessory_id = "Spatula".to_owned();
+    let propane_accessory = StockItem {
+        item_name: propane_accessory_id.clone(),
+        price: 12.34,
+    };
 
     let (e_tx, mut e_rx) = channel(1);
     let (s_tx, mut s_rx) = channel(1);
@@ -57,30 +71,37 @@ async fn test_mongo_connector() {
     let s_store = storage.clone();
     tokio::spawn(async move {
         e_store
-            .watch_employee(e_tx)
+            .watch_employee(e_tx, None)
             .await
             .expect("Failed to initiate Employee watch.");
     });
     tokio::spawn(async move {
         s_store
-            .watch_stock_item(s_tx)
+            .watch_stock_item(s_tx, None)
             .await
             .expect("Failed to initiate StockItem watch.");
     });
+
+    // Make sure the watches have time to start up.
+    tokio::time::sleep(Duration::from_millis(10)).await;
 
     storage
         .create_employee(&hank)
         .await
         .expect("Failed to create employee.");
+
     storage
         .create_stock_item(&propane)
         .await
         .expect("Failed to create stock item.");
+
     let e_event = e_rx.recv().await.expect("Error receiving employee event.");
+
     let s_event = s_rx
         .recv()
         .await
         .expect("Error receiving stock item event.");
+
     match e_event {
         Event::Create(e) => assert_eq!(hank_id, e.name),
         _ => panic!("Received wrong type of event for employee creation."),
@@ -120,15 +141,35 @@ async fn test_mongo_connector() {
             assert_eq!(propane_id, id);
             assert_eq!(Some(new_price), update.price);
         }
-        _ => panic!("Received wrong type of event on employee update."),
+        _ => panic!("Received wrong type of event on stock item update."),
     }
 
     storage
-        .delete_employee(&hank_id)
+        .create_stock_item(&propane_accessory)
+        .await
+        .expect("Failed to create second stock item.");
+    s_rx.recv().await.unwrap();
+
+    let stock_items = storage
+        .get_stock_item(None)
+        .await
+        .expect("Failed to get stock items.");
+    assert!(stock_items.iter().any(|si| si.item_name == propane_id));
+    assert!(stock_items
+        .iter()
+        .any(|si| si.item_name == propane_accessory_id));
+    let retrieved_propane_accessory = storage
+        .get_stock_item_by_id(&propane_accessory_id)
+        .await
+        .expect("failed retrieving stock item by ID.");
+    assert_eq!(propane_accessory, retrieved_propane_accessory);
+
+    storage
+        .delete_employee_by_id(&hank_id)
         .await
         .expect("Failed to delete employee.");
     storage
-        .delete_stock_item(&propane_id)
+        .delete_stock_item_by_id(&propane_id)
         .await
         .expect("Failed to delete stock item.");
     let e_event = e_rx
@@ -147,4 +188,5 @@ async fn test_mongo_connector() {
         Event::Delete(id) => assert_eq!(propane_id, id),
         _ => panic!("Received wrong event type on stock item delete."),
     }
+    storage.delete_stock_item(None).await.unwrap();
 }

@@ -69,8 +69,8 @@ pub fn impl_mongo_storage(name: &Ident, helper: MongoCollectionsAttribute) -> To
     );
     quote! {
         #(#impls)*
-        impl #name {
-            async fn of_mongo(connection_string: String, database_name: String, app_name: Option<String>) -> Result<Self, mongodb::error::Error> {
+        impl #name<fullstack_entity::mongo::MongoFilter> {
+            async fn of_mongo(connection_string: String, database_name: String, app_name: Option<String>) -> Result<#name<fullstack_entity::mongo::MongoFilter>, mongodb::error::Error> {
                 let store = MongoEntityStorage::new(connection_string, database_name, app_name).await?;
                 Ok(Self::new(store))
             }

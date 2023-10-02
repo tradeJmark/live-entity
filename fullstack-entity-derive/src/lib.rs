@@ -43,8 +43,8 @@ pub fn storage_wrapper(
     stream: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     let args = parse_macro_input!(args as StorageWrapperArgs);
-    let mut st = parse_macro_input!(stream as ItemStruct);
-    build_storage_wrapper(&args, &mut st).into()
+    let st = parse_macro_input!(stream as ItemStruct);
+    build_storage_wrapper(&args, st).into()
 }
 
 #[cfg(feature = "mongo")]

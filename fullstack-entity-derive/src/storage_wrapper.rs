@@ -49,15 +49,18 @@ fn get_store_trait_name(name: &Ident) -> Ident {
 impl StorageWrapperArgs {
     fn gen_stores_of(&self) -> impl Iterator<Item = Type> + '_ {
         self.0.iter().map(|StorageWrapperArg { name: _, ty }| {
-            parse_quote! { fullstack_entity::StoreOf<#ty> }
+            parse_quote! { fullstack_entity::StoreOf<#ty, Filter = F> }
         })
     }
     fn gen_entity_functions(&self) -> impl Iterator<Item = ImplItemFn> + '_ {
-        self.0.iter().flat_map(|StorageWrapperArg{ name, ty }| {
-            let store_ident = get_store_ident();
+        let store_ident = get_store_ident();
+        self.0.iter().flat_map(move |StorageWrapperArg{ name, ty }| {
             let create_fn = format_ident!("create_{}", name);
             let update_fn = format_ident!("update_{}", name);
             let delete_fn = format_ident!("delete_{}", name);
+            let delete_by_id_fn = format_ident!("delete_{}_by_id", name);
+            let get_fn = format_ident!("get_{}", name);
+            let get_by_id_fn = format_ident!("get_{}_by_id", name);
             let watch_fn = format_ident!("watch_{}", name);
             [
                 parse_quote! {
@@ -71,13 +74,28 @@ impl StorageWrapperArgs {
                     }
                 },
                 parse_quote! {
-                    pub async fn #delete_fn(&self, id: &<#ty as fullstack_entity::Entity>::ID) -> core::result::Result<(), std::boxed::Box<dyn std::error::Error>> {
-                        fullstack_entity::StoreOf::<#ty>::delete(&*self.#store_ident, id).await
+                    pub async fn #delete_fn(&self, filter: std::option::Option<&F>) -> core::result::Result<(), std::boxed::Box<dyn std::error::Error>> {
+                        fullstack_entity::StoreOf::<#ty>::delete(&*self.#store_ident, filter).await
                     }
                 },
                 parse_quote! {
-                    pub async fn #watch_fn(&self, channel: tokio::sync::broadcast::Sender<fullstack_entity::Event<#ty>>) -> core::result::Result<(), std::boxed::Box<dyn std::error::Error>> {
-                        fullstack_entity::StoreOf::<#ty>::watch(&*self.#store_ident, channel).await
+                    pub async fn #delete_by_id_fn(&self, id: &<#ty as fullstack_entity::Entity>::ID) -> core::result::Result<(), std::boxed::Box<dyn std::error::Error>> {
+                        fullstack_entity::StoreOf::<#ty>::delete_by_id(&*self.#store_ident, id).await
+                    }
+                },
+                parse_quote! {
+                    pub async fn #get_fn(&self, filter: std::option::Option<&F>) -> core::result::Result<Vec<#ty>, std::boxed::Box<dyn std::error::Error>> {
+                        self.#store_ident.get(filter).await
+                    }
+                },
+                parse_quote! {
+                    pub async fn #get_by_id_fn(&self, id: &<#ty as fullstack_entity::Entity>::ID) -> core::result::Result<#ty, std::boxed::Box<dyn std::error::Error>> {
+                        fullstack_entity::StoreOf::<#ty>::get_by_id(&*self.#store_ident, id).await
+                    }
+                },
+                parse_quote! {
+                    pub async fn #watch_fn(&self, channel: tokio::sync::broadcast::Sender<fullstack_entity::Event<#ty>>, filter: std::option::Option<&F>) -> core::result::Result<(), std::boxed::Box<dyn std::error::Error>> {
+                        fullstack_entity::StoreOf::<#ty>::watch(&*self.#store_ident, channel, filter).await
                     }
                 }
             ]
@@ -85,15 +103,17 @@ impl StorageWrapperArgs {
     }
 }
 
-pub fn build_storage_wrapper(args: &StorageWrapperArgs, st: &mut ItemStruct) -> TokenStream {
+pub fn build_storage_wrapper(args: &StorageWrapperArgs, mut st: ItemStruct) -> TokenStream {
+    let name = st.ident.clone();
     let store_ident = get_store_ident();
     let stores_of: Punctuated<_, Plus> = args.gen_stores_of().collect();
     let trt = get_store_trait_name(&st.ident);
     let mut out = quote! {
-        trait #trt: #stores_of {}
-        impl<T: #stores_of> #trt for T {}
+        trait #trt<F>: #stores_of {}
+        impl<F, T: #stores_of> #trt<F> for T {}
     };
-    let store_type: Type = parse_quote! { std::sync::Arc<dyn #trt> };
+    let store_type: Type = parse_quote! { std::sync::Arc<dyn #trt<F>> };
+    st.generics = parse_quote! { <F> };
     if let Fields::Unit = st.fields {
         st.fields = Fields::Named(parse_quote! {{
             #store_ident: #store_type
@@ -103,12 +123,11 @@ pub fn build_storage_wrapper(args: &StorageWrapperArgs, st: &mut ItemStruct) -> 
     }
     out.extend(st.into_token_stream());
 
-    let name = &st.ident;
     let fns = args.gen_entity_functions();
     out.extend(quote! {
-        impl #name {
-            pub fn new(#store_ident: impl #stores_of + 'static) -> Self {
-                Self { #store_ident: std::sync::Arc::new(#store_ident) }
+        impl<F> #name<F> {
+            pub fn new(#store_ident: impl #trt<F> + 'static) -> #name<F> {
+                #name::<F> { #store_ident: std::sync::Arc::new(#store_ident) }
             }
             #(#fns)*
         }
