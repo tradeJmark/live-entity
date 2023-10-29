@@ -9,8 +9,8 @@ pub use event::*;
 
 pub use fullstack_entity_derive as derive;
 
-mod store_of;
-pub use store_of::*;
+mod store;
+pub use store::*;
 
-#[cfg(feature = "mongo")]
-pub mod mongo;
+#[cfg(feature = "mongodb")]
+pub mod mongodb;

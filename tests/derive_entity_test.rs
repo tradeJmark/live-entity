@@ -3,6 +3,7 @@ use fullstack_entity_derive::Entity;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Entity)]
+#[entity_name = "articles"]
 struct Article {
     #[entity_id]
     id: i32,

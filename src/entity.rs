@@ -17,8 +17,9 @@ pub trait Entity:
     + Into<Self::Update>
     + 'static
 {
-    type Update: Send + Sync + Serialize + DeserializeOwned + Debug;
+    type Update: Send + Sync + Serialize + DeserializeOwned + Debug + Clone;
     type ID: Eq + Hash + Send + Sync + DeserializeOwned + Serialize + Debug + Clone;
+    const NAME: &'static str;
 
     fn get_id(&self) -> &Self::ID;
 }

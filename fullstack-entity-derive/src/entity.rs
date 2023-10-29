@@ -1,10 +1,15 @@
 use super::updatable::gen_update_name;
-use proc_macro2::{Ident, TokenStream};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::{format_ident, quote, quote_spanned};
 use syn::spanned::Spanned;
-use syn::{Error, Field, FieldsNamed};
+use syn::{Attribute, Error, Expr, Field, FieldsNamed, Lit, LitStr};
 
-pub fn impl_entity(name: &Ident, id_field: &Field, other_fields: &Vec<&Field>) -> TokenStream {
+pub fn impl_entity(
+    name: &Ident,
+    name_str: &LitStr,
+    id_field: &Field,
+    other_fields: &Vec<&Field>,
+) -> TokenStream {
     let update_name = gen_update_name(name);
     let id_name = &id_field.ident;
     let id_type = &id_field.ty;
@@ -14,6 +19,7 @@ pub fn impl_entity(name: &Ident, id_field: &Field, other_fields: &Vec<&Field>) -
         impl fullstack_entity::Entity for #name {
             type Update = #update_name;
             type ID = #id_type;
+            const NAME: &'static str = #name_str;
 
             fn get_id(&self) -> &Self::ID {
                 &self.#id_name
@@ -62,4 +68,21 @@ pub fn extract_id_field(fields: &FieldsNamed) -> (Result<&Field, Error>, Vec<&Fi
         "No ID field specified for Entity.",
     ));
     (id, others)
+}
+
+pub fn get_name_str(attrs: &Vec<Attribute>, name_span: Span) -> Result<&LitStr, Error> {
+    attrs
+        .iter()
+        .find(|&a| a.path().is_ident("entity_name"))
+        .ok_or(Error::new(name_span, "No name specified for entity."))
+        .and_then(|a| match &a.meta {
+            syn::Meta::NameValue(nv) => match &nv.value {
+                Expr::Lit(lit_expr) => match &lit_expr.lit {
+                    Lit::Str(lit) => Ok(lit),
+                    _ => Err(Error::new(name_span, "Malformed entity_name attribute.")),
+                },
+                _ => Err(Error::new(name_span, "Malformed entity_name attribute.")),
+            },
+            _ => Err(Error::new(name_span, "Malformed entity_name attribute.")),
+        })
 }

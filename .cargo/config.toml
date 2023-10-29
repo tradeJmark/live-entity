@@ -1,3 +1,3 @@
 [env]
-FSE_MONGO_TEST_URL = "mongodb://localhost:27017/?replicaSet=replicaset"
-FSE_MONGO_TEST_DB = "fse_test"
+FSE_MONGODB_TEST_URL = "mongodb://localhost:27017/?replicaSet=replicaset"
+FSE_MONGODB_TEST_DB = "fse_test"
