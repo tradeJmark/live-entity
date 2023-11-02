@@ -19,7 +19,7 @@ pub fn impl_entity(
         impl fullstack_entity::Entity for #name {
             type Update = #update_name;
             type ID = #id_type;
-            const NAME: &'static str = #name_str;
+            const TYPE_NAME: &'static str = #name_str;
 
             fn get_id(&self) -> &Self::ID {
                 &self.#id_name

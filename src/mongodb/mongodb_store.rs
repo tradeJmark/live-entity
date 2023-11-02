@@ -32,7 +32,7 @@ impl MongoDBStore {
         &self,
         filter: Option<Document>,
     ) -> Result<(), Box<dyn Error>> {
-        let collection = self.db.collection::<E>(E::NAME);
+        let collection = self.db.collection::<E>(E::TYPE_NAME);
         collection
             .delete_many(filter.unwrap_or(doc! {}), None)
             .await?;
@@ -43,7 +43,7 @@ impl MongoDBStore {
         &self,
         filter: Option<Document>,
     ) -> Result<Vec<E>, Box<dyn Error>> {
-        let collection = self.db.collection::<E>(E::NAME);
+        let collection = self.db.collection::<E>(E::TYPE_NAME);
         let res = collection.find(filter, None).await?;
         Ok(res.try_collect().await?)
     }
@@ -53,7 +53,7 @@ impl MongoDBStore {
         channel: Sender<Event<E>>,
         filter: Option<Document>,
     ) -> Result<(), Box<dyn Error>> {
-        let collection = self.db.collection::<E>(E::NAME);
+        let collection = self.db.collection::<E>(E::TYPE_NAME);
         let mut mtch = doc! { "$match": {
             "operationType": {
                 "$in": to_bson(&[OperationType::Update, OperationType::Insert, OperationType::Delete, OperationType::Replace])?
@@ -132,7 +132,7 @@ impl Error for MongoDBContractViolationError {}
 #[async_trait]
 impl Store for MongoDBStore {
     async fn create<E: Entity>(&self, entity: &E) -> Result<(), Box<dyn Error>> {
-        let collection = self.db.collection::<E>(E::NAME);
+        let collection = self.db.collection::<E>(E::TYPE_NAME);
         collection.insert_one(entity, None).await?;
         Ok(())
     }
@@ -142,7 +142,7 @@ impl Store for MongoDBStore {
         id: &E::ID,
         update: &E::Update,
     ) -> Result<(), Box<dyn Error>> {
-        let collection = self.db.collection::<E>(E::NAME);
+        let collection = self.db.collection::<E>(E::TYPE_NAME);
         let query = doc! { "_id": to_bson(id)? };
         let update = vec![doc! {
             "$set": to_document(&update)?
@@ -156,7 +156,7 @@ impl Store for MongoDBStore {
     }
 
     async fn delete_by_id<E: Entity>(&self, id: &E::ID) -> Result<(), Box<dyn Error>> {
-        let collection = self.db.collection::<E>(E::NAME);
+        let collection = self.db.collection::<E>(E::TYPE_NAME);
         let query = doc! { "_id": to_bson(id)? };
         collection.delete_one(query, None).await?;
         Ok(())
@@ -167,7 +167,7 @@ impl Store for MongoDBStore {
     }
 
     async fn get_by_id<E: Entity>(&self, id: &E::ID) -> Result<E, Box<dyn Error>> {
-        let collection = self.db.collection::<E>(E::NAME);
+        let collection = self.db.collection::<E>(E::TYPE_NAME);
         let query = doc! { "_id": to_bson(id)? };
         collection
             .find_one(query, None)
