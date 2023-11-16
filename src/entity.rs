@@ -19,7 +19,6 @@ pub trait ProtoEntity<U: UpdateTrait>:
     + Sync
     + Unpin
     + Debug
-    + Into<U>
     + 'static {}
 impl<U: UpdateTrait, T: 
     Serialize
@@ -31,7 +30,6 @@ impl<U: UpdateTrait, T:
     + Sync
     + Unpin
     + Debug
-    + Into<U>
     + 'static> ProtoEntity<U> for T {}
 
 pub trait Entity: ProtoEntity<Self::Update>

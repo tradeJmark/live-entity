@@ -28,7 +28,7 @@ impl MongoDBStore {
             .map(|db| Self { db })
     }
 
-    async fn delete_filtered<E: Entity>(
+    pub async fn delete_filtered<E: Entity>(
         &self,
         filter: Option<Document>,
     ) -> Result<(), Box<dyn Error>> {
@@ -39,7 +39,7 @@ impl MongoDBStore {
         Ok(())
     }
 
-    async fn get_filtered<E: Entity>(
+    pub async fn get_filtered<E: Entity>(
         &self,
         filter: Option<Document>,
     ) -> Result<Vec<E>, Box<dyn Error>> {
@@ -48,12 +48,12 @@ impl MongoDBStore {
         Ok(res.try_collect().await?)
     }
 
-    async fn watch_filtered<E: Entity>(
+    pub async fn watch_filtered<E: Entity>(
         &self,
         channel: Sender<Event<E>>,
         filter: Option<Document>,
     ) -> Result<(), Box<dyn Error>> {
-        let collection = self.db.collection::<E>(E::TYPE_NAME);
+        let collection = self.db.collection::<Document>(E::TYPE_NAME);
         let mut mtch = doc! { "$match": {
             "operationType": {
                 "$in": to_bson(&[OperationType::Update, OperationType::Insert, OperationType::Delete, OperationType::Replace])?
@@ -67,18 +67,18 @@ impl MongoDBStore {
         let options = ChangeStreamOptions::builder()
             .full_document(Some(FullDocumentType::UpdateLookup))
             .build();
-        let mut watch: mongodb::change_stream::ChangeStream<ChangeStreamEvent<E>> =
-            collection.watch([mtch], options).await?;
+        let mut watch = collection.watch([mtch], options).await?;
         while let Some(evt) = watch.next().await.transpose()? {
             match evt.operation_type {
                 OperationType::Insert => {
                     let doc = evt.full_document.ok_or(MongoDBContractViolationError(
                         "MongoDB did not provide full document on insert event".to_owned(),
                     ))?;
-                    channel.send(Event::Create(doc))?;
+                    let entity = from_document(doc)?;
+                    channel.send(Event::Create(entity))?;
                 }
                 OperationType::Update => {
-                    let id: E::ID = get_id_from_change_event(&evt)?;
+                    let id = get_id_from_change_event::<E>(&evt)?;
                     let doc = evt
                         .update_description
                         .ok_or(MongoDBContractViolationError(
@@ -89,17 +89,16 @@ impl MongoDBStore {
                     channel.send(Event::Update { id, update })?;
                 }
                 OperationType::Delete => {
-                    let id: E::ID = get_id_from_change_event(&evt)?;
+                    let id = get_id_from_change_event::<E>(&evt)?;
                     channel.send(Event::Delete(id))?;
                 }
                 OperationType::Replace => {
+                    let id = get_id_from_change_event::<E>(&evt)?;
                     let doc = evt.full_document.ok_or(MongoDBContractViolationError(
-                        "MongoDB did not provide full document on insert event".to_owned(),
+                        "MongoDB did not provide full document on replace event".to_owned(),
                     ))?;
-                    channel.send(Event::Update {
-                        id: doc.get_id().clone(),
-                        update: doc.into(),
-                    })?;
+                    let update: E::Update = from_document(doc)?;
+                    channel.send(Event::Update { id, update })?;
                 }
                 _ => {
                     return Err(MongoDBContractViolationError(format!(
@@ -132,8 +131,10 @@ impl Error for MongoDBContractViolationError {}
 #[async_trait]
 impl Store for MongoDBStore {
     async fn create<E: Entity>(&self, entity: &E) -> Result<(), Box<dyn Error>> {
-        let collection = self.db.collection::<E>(E::TYPE_NAME);
-        collection.insert_one(entity, None).await?;
+        let collection = self.db.collection::<Document>(E::TYPE_NAME);
+        let mut doc = to_document(entity)?;
+        doc.insert("_id", to_bson(entity.get_id())?);
+        collection.insert_one(doc, None).await?;
         Ok(())
     }
 
@@ -181,7 +182,7 @@ impl Store for MongoDBStore {
 }
 
 fn get_id_from_change_event<E: Entity>(
-    event: &ChangeStreamEvent<E>,
+    event: &ChangeStreamEvent<Document>,
 ) -> Result<E::ID, Box<dyn Error>> {
     let id = from_bson(
         event

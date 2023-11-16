@@ -2,17 +2,21 @@ use std::fmt::Debug;
 
 use serde::{de::DeserializeOwned, Serialize, Deserialize};
 
-use crate::{Entity, UpdateTrait, Updatable, IDTrait};
+use crate::{Entity, UpdateTrait, Updatable};
 
-pub trait Singleton: Updatable<Self::Update> + Debug + Clone + Serialize + DeserializeOwned + Unpin + Send + Sync + Into<Self::Update> + 'static {
-  type ID: IDTrait;
+pub trait Singleton: Updatable<Self::Update> + Debug + Clone + Serialize + DeserializeOwned + Unpin + Send + Sync + 'static {
   type Update: UpdateTrait;
-  const ENTITY_ID: &'static Self::ID;
+  const ENTITY_ID: &'static str;
   const TYPE_NAME: &'static str;
 }
 
 #[derive(Clone)]
-pub struct SingletonEntity<S: Singleton>(pub(crate) S);
+pub struct SingletonEntity<S: Singleton>(pub(crate) S, String);
+impl<S: Singleton> SingletonEntity<S> {
+  pub fn new(singleton: S) -> Self {
+    Self(singleton, S::ENTITY_ID.to_owned())
+  }
+}
 #[derive(Clone)]
 pub struct SingletonEntityUpdate<S: Singleton>(pub(crate) S::Update);
 impl<S: Singleton> Debug for SingletonEntity<S> {
@@ -50,7 +54,7 @@ impl<'de, S: Singleton> Deserialize<'de> for SingletonEntity<S> {
       where
           D: serde::Deserializer<'de> {
       let data = S::deserialize(deserializer)?;
-      Ok(SingletonEntity(data))
+      Ok(SingletonEntity::new(data))
   } 
 }
 impl<'de, S: Singleton> Deserialize<'de> for SingletonEntityUpdate<S> {
@@ -66,16 +70,12 @@ impl<S: Singleton> Updatable<SingletonEntityUpdate<S>> for SingletonEntity<S> {
       self.0.update(&with.0)
   }
 }
-impl<S: Singleton> Into<SingletonEntityUpdate<S>> for SingletonEntity<S> {
-  fn into(self) -> SingletonEntityUpdate<S> {
-      SingletonEntityUpdate(self.0.into())
-  }
-}
+
 impl<S: Singleton> Entity for SingletonEntity<S> {
-  type ID = S::ID;
+  type ID = String;
   type Update = SingletonEntityUpdate<S>;
   const TYPE_NAME: &'static str = S::TYPE_NAME;
   fn get_id(&self) -> &Self::ID {
-      S::ENTITY_ID
+    &self.1
   }
 }

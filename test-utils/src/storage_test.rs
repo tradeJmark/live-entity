@@ -1,4 +1,4 @@
-use fullstack_entity::{derive::Entity, Event, Store};
+use fullstack_entity::{derive::{Entity, Updatable}, Event, SingletonEvent, Store, Singleton};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast::channel;
 
@@ -172,4 +172,52 @@ pub async fn test_storage_functions<T: Store + 'static>(storage: T) {
         _ => panic!("Received wrong event type on stock item delete."),
     }
     storage.delete_all::<StockItem>().await.unwrap();
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Updatable, Eq, PartialEq)]
+struct HomePage {
+    header: String,
+    body: String
+}
+
+impl Singleton for HomePage {
+    type Update = UpdatedHomePage;
+    const TYPE_NAME: &'static str = "pages";
+    const ENTITY_ID: &'static str = "home";
+}
+
+pub async fn test_storage_singleton_functions<T: Store + 'static>(storage: T) {
+    let hp = HomePage { header: "Welcome!".to_owned(), body: "Please stay long enough to see some ads".to_owned() };
+    storage.create_singleton(&hp).await.expect("Failed to create singleton.");
+
+    let retrieved = storage.get_singleton::<HomePage>().await.expect("Failed to retrieve stored singleton.");
+    assert_eq!(hp, retrieved);
+
+    let (tx, mut rx) = channel(1);
+    let clone_store = storage.clone();
+    tokio::spawn(async move {
+        clone_store
+            .watch_singleton::<HomePage>(tx, 1)
+            .await
+            .expect("Failed to initiate singleton watch.");
+    });
+    tokio::task::yield_now().await;
+
+    let updated_body = "Subscribe to our Patreon for ad-free content!".to_owned();
+    let update = UpdatedHomePage::default().body(updated_body.clone());
+    storage.update_singleton::<HomePage>(&update).await.expect("Failed to update singleton.");
+
+    let event = rx.recv().await.expect("Error receiving singleton event.");
+    match event {
+        SingletonEvent::Update(update) => {
+            assert_eq!(None, update.header);
+            assert_eq!(Some(updated_body), update.body);
+        }
+        _ => panic!("Did not recieve an update event for singleton.")
+    }
+
+    storage.delete_singleton::<HomePage>().await.expect("Failed to delete singleton.");
+    if storage.get_singleton::<HomePage>().await.is_ok() {
+        panic!("Singleton was not deleted.")
+    }
 }

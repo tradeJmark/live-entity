@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use tokio::sync::{broadcast::Sender, Mutex};
 use typemap_rev::{TypeMap, TypeMapKey, Entry};
 
-use crate::{Entity, Event, NotFoundError, Store, Singleton, SingletonEntity, SingletonEntityUpdate};
+use crate::{Entity, Event, NotFoundError, Store, Singleton, SingletonEvent};
 
 #[derive(Clone)]
 pub struct InMemStore {
@@ -31,7 +31,7 @@ impl<E: Entity> TypeMapKey for EntityWrapper<E> {
 
 struct SingletonWrapper<S: Singleton>(S);
 impl<S: Singleton> TypeMapKey for SingletonWrapper<S> {
-    type Value = (Sender<Event<SingletonEntity<S>>>, Option<Self>);
+    type Value = (Sender<SingletonEvent<S>>, Option<Self>);
 }
 
 #[async_trait]
@@ -64,7 +64,7 @@ impl Store for InMemStore {
             }
         };
         if channel.receiver_count() > 0 {
-            channel.send(Event::Create(SingletonEntity(entity.clone())))?;
+            channel.send(SingletonEvent::Create(entity.clone()))?;
         }
         Ok(())
     }
@@ -95,7 +95,7 @@ impl Store for InMemStore {
         let current = current_opt.as_mut().ok_or(NotFoundError(S::ENTITY_ID))?;
         current.0.update(update);
         if channel.receiver_count() > 0 {
-            channel.send(Event::Update { id: S::ENTITY_ID.clone(), update: SingletonEntityUpdate(update.clone()) })?;
+            channel.send(SingletonEvent::Update(update.clone()))?;
         }
         Ok(())
     }
@@ -130,7 +130,7 @@ impl Store for InMemStore {
         if let Entry::Occupied(mut e) = sings.entry::<SingletonWrapper<S>>() {
             let (channel, _) = e.get_mut();
             if channel.receiver_count() > 0 {
-                channel.send(Event::Delete(S::ENTITY_ID.clone()))?;
+                channel.send(SingletonEvent::Delete)?;
             }
             e.remove();
         }
@@ -157,11 +157,11 @@ impl Store for InMemStore {
             .map_err(|e| e.into())
     }
 
-    async fn get_singleton<S: Singleton>(&self) -> Result<SingletonEntity<S>, Box<dyn Error>> {
+    async fn get_singleton<S: Singleton>(&self) -> Result<S, Box<dyn Error>> {
         let sings = self.singleton_stores.lock().await;
         let (_, opt_s) = sings.get::<SingletonWrapper<S>>().ok_or(NotFoundError(S::ENTITY_ID))?;
         let s = opt_s.as_ref().ok_or(NotFoundError(S::ENTITY_ID))?;
-        Ok(SingletonEntity(s.0.clone()))
+        Ok(s.0.clone())
     }
 
     async fn watch<E: Entity>(&self, channel: Sender<Event<E>>) -> Result<(), Box<dyn Error>> {
@@ -178,7 +178,7 @@ impl Store for InMemStore {
         Ok(())
     }
 
-    async fn watch_singleton<S: Singleton>(&self, channel: Sender<Event<SingletonEntity<S>>>) -> Result<(), Box<dyn Error>> {
+    async fn watch_singleton<S: Singleton>(&self, channel: Sender<SingletonEvent<S>>, _: usize) -> Result<(), Box<dyn Error>> {
         let mut ch = {
             let mut sings = self.singleton_stores.lock().await;
             let (channel, _) = sings.entry::<SingletonWrapper<S>>().or_insert((Sender::new(self.retain), None));
