@@ -7,6 +7,10 @@ license = "MIT OR Apache-2.0"
 homepage = "https://github.com/tradeJmark/live-entity"
 repository = "https://github.com/tradeJmark/live-entity"
 readme = "README.md"
+exclude = [
+  ".idea",
+  ".vscode"
+]
 
 [features]
 mongodb = ["dep:mongodb"]
