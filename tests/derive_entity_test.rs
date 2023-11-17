@@ -1,5 +1,5 @@
-use fullstack_entity::{Entity, Updatable};
-use fullstack_entity_derive::Entity;
+use live_entity::{Entity, Updatable};
+use live_entity_derive::Entity;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Entity)]

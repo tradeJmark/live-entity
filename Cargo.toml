@@ -1,9 +1,9 @@
 [package]
-name = "fullstack-entity"
-version = "0.1.0"
+name = "live-entity"
+description = "A framework for storing entities and watching them for updates."
+version = "0.0.1"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT OR Apache-2.0"
 
 [features]
 mongodb = ["dep:mongodb"]
@@ -11,7 +11,7 @@ in-mem = ["dep:typemap_rev"]
 default = ["in-mem"]
 
 [dependencies]
-fullstack-entity-derive = { path = "fullstack-entity-derive" }
+live-entity-derive = { path = "live-entity-derive" }
 serde = { version = "1.0.188", features = ["derive"] }
 tokio = { version = "1.32.0", features = ["sync", "macros"] }
 async-trait = { version = "0.1.73" }

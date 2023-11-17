@@ -2,7 +2,7 @@
   "rust-analyzer.cargo.features": "all",
   "rust-analyzer.linkedProjects": [
     "./test-utils/Cargo.toml",
-    "./fullstack-entity-derive/Cargo.toml",
+    "./live-entity-derive/Cargo.toml",
     "./Cargo.toml"
   ]
 }

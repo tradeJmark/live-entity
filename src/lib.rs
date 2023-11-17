@@ -7,7 +7,7 @@ pub use updatable::*;
 mod event;
 pub use event::*;
 
-pub use fullstack_entity_derive as derive;
+pub use live_entity_derive as derive;
 
 mod store;
 pub use store::*;

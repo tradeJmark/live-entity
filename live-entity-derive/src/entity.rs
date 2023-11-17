@@ -16,7 +16,7 @@ pub fn impl_entity(
     let mut output = impl_eq_for_entity(name, id_field);
     output.extend(impl_into_update(&name, &update_name, other_fields));
     output.extend(quote! {
-        impl fullstack_entity::Entity for #name {
+        impl live_entity::Entity for #name {
             type Update = #update_name;
             type ID = #id_type;
             const TYPE_NAME: &'static str = #name_str;

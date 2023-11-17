@@ -1,4 +1,4 @@
-use fullstack_entity::{derive::{Entity, Updatable}, Event, SingletonEvent, Store, Singleton};
+use live_entity::{derive::{Entity, Updatable}, Event, SingletonEvent, Store, Singleton};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast::channel;
 

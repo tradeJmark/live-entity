@@ -2,7 +2,7 @@
 
 use std::env;
 
-use fullstack_entity::mongodb::MongoDBStore;
+use live_entity::mongodb::MongoDBStore;
 use test_utils::storage_test::*;
 
 async fn get_store() -> MongoDBStore {

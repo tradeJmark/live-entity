@@ -20,7 +20,7 @@ pub fn impl_updatable(name: &Ident, fields: &Vec<&Field>) -> TokenStream {
             #(#builder_fns)*
         }
 
-        impl fullstack_entity::Updatable<#update_name> for #name {
+        impl live_entity::Updatable<#update_name> for #name {
             fn update(&mut self, #with_name: &#update_name) {
                 #update_fn_body
             }
@@ -67,7 +67,7 @@ fn gen_update_fn_body(fields: &Vec<&Field>, with_name: &Ident) -> TokenStream {
     let lines = fields.iter().map(|&f| {
         let id = &f.ident;
         quote_spanned! {f.ty.span()=>
-            fullstack_entity::Updatable::update(&mut self.#id, &#with_name.#id);
+            live_entity::Updatable::update(&mut self.#id, &#with_name.#id);
         }
     });
     quote! { #(#lines)* }

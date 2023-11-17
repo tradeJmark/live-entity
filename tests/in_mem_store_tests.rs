@@ -1,6 +1,6 @@
 #![cfg(feature = "in-mem")]
 
-use fullstack_entity::in_mem::InMemStore;
+use live_entity::in_mem::InMemStore;
 use test_utils::storage_test::{test_storage_functions, test_storage_singleton_functions};
 
 #[tokio::test]

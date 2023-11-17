@@ -1,5 +1,5 @@
-use fullstack_entity::derive::Updatable;
-use fullstack_entity::Updatable;
+use live_entity::derive::Updatable;
+use live_entity::Updatable;
 
 #[derive(Updatable)]
 struct Person {
