@@ -20,7 +20,7 @@ default = ["in-mem"]
 [dependencies]
 live-entity-derive = { version = "0.0.1", path = "live-entity-derive" }
 serde = { version = "1.0.188", features = ["derive"] }
-tokio = { version = "1.32.0", features = ["sync", "macros"] }
+tokio = { version = "1.32.0", features = ["sync", "macros", "rt"] }
 async-trait = { version = "0.1.73" }
 futures-util = { version = "0.3.28" }
 mongodb = { version = "2.6.1", optional = true }
