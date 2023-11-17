@@ -14,7 +14,7 @@ in-mem = ["dep:typemap_rev"]
 default = ["in-mem"]
 
 [dependencies]
-live-entity-derive = { path = "live-entity-derive" }
+live-entity-derive = { version = "0.0.1", path = "live-entity-derive" }
 serde = { version = "1.0.188", features = ["derive"] }
 tokio = { version = "1.32.0", features = ["sync", "macros"] }
 async-trait = { version = "0.1.73" }
