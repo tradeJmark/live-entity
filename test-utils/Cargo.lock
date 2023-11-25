@@ -115,7 +115,7 @@ checksum = "a08173bc88b7955d1b3145aa561539096c421ac8debde8cbc3612ec635fee29b"
 
 [[package]]
 name = "live-entity"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "async-trait",
  "futures-util",
@@ -236,7 +236,7 @@ dependencies = [
 
 [[package]]
 name = "test-utils"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "live-entity",
  "serde",
