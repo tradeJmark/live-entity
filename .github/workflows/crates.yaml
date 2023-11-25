@@ -15,11 +15,9 @@ jobs:
         with:
           toolchain: stable
           override: true
-      - uses: katyo/publish-crates@v2
-        with:
-          registry-token: ${{ secrets.CRATES_KEY }}
-          path: ./live-entity-derive
-      - uses: katyo/publish-crates@v2
-        with:
-          registry-token: ${{ secrets.CRATES_KEY }}
-          args: "--allow-branch HEAD"
+      - name: cargo login
+        run: cargo login ${{ secrets.CRATES_KEY }}
+      - name: publish derives
+        run: cargo publish --manifest-path ./live-entity-derive/Cargo.toml --all-features
+      - name: publish main
+        run: cargo publish --all-features

@@ -1,7 +1,7 @@
 [package]
 name = "live-entity"
 description = "A framework for storing entities and watching them for updates."
-version = "0.0.5"
+version = "0.0.6"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/tradeJmark/live-entity"
@@ -18,7 +18,7 @@ in-mem = ["dep:typemap_rev"]
 default = ["in-mem"]
 
 [dependencies]
-live-entity-derive = { version = "0.0.5", path = "live-entity-derive" }
+live-entity-derive = { version = "0.0.6", path = "live-entity-derive" }
 serde = { version = "1.0.188", features = ["derive"] }
 tokio = { version = "1.32.0", features = ["sync", "macros", "rt"] }
 async-trait = { version = "0.1.73" }
