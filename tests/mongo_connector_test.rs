@@ -1,6 +1,6 @@
 #![cfg(feature = "mongodb")]
 
-use std::env;
+use std::{env, sync::Arc};
 
 use live_entity::mongodb::MongoDBStore;
 use test_utils::storage_test::*;
@@ -16,13 +16,13 @@ async fn get_store() -> MongoDBStore {
 #[tokio::test]
 #[ignore]
 async fn test_mongodb_connector() {
-    let storage = get_store().await;
+    let storage = Arc::new(get_store().await);
     test_storage_functions(storage).await;
 }
 
 #[tokio::test]
 #[ignore]
 async fn test_mongodb_connector_singletons() {
-    let storage = get_store().await;
+    let storage = Arc::new(get_store().await);
     test_storage_singleton_functions(storage).await;
 }

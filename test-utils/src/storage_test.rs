@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use live_entity::{derive::{Entity, Updatable}, Event, SingletonEvent, Store, Singleton};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast::channel;
@@ -21,7 +23,7 @@ struct StockItem {
     price: f32,
 }
 
-pub async fn test_storage_functions<T: Store + 'static>(storage: T) {
+pub async fn test_storage_functions<T: Store + 'static>(storage: Arc<T>) {
     storage
         .delete_all::<Employee>()
         .await
@@ -186,7 +188,7 @@ impl Singleton for HomePage {
     const ENTITY_ID: &'static str = "home";
 }
 
-pub async fn test_storage_singleton_functions<T: Store + 'static>(storage: T) {
+pub async fn test_storage_singleton_functions<T: Store + 'static>(storage: Arc<T>) {
     let hp = HomePage { header: "Welcome!".to_owned(), body: "Please stay long enough to see some ads".to_owned() };
     storage.create_singleton(&hp).await.expect("Failed to create singleton.");
 

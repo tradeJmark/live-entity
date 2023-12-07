@@ -178,7 +178,7 @@ impl Store for InMemStore {
         Ok(())
     }
 
-    async fn watch_singleton<S: Singleton>(&self, channel: Sender<SingletonEvent<S>>, _: usize) -> Result<(), Box<dyn Error>> {
+    async fn watch_singleton<S: Singleton>(self: Arc<Self>, channel: Sender<SingletonEvent<S>>, _: usize) -> Result<(), Box<dyn Error>> {
         let mut ch = {
             let mut sings = self.singleton_stores.lock().await;
             let (channel, _) = sings.entry::<SingletonWrapper<S>>().or_insert((Sender::new(self.retain), None));

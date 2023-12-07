@@ -1,13 +1,13 @@
 use crate::{Entity, Event, SingletonEntity, Singleton, SingletonEntityUpdate, SingletonEvent};
 use async_trait::async_trait;
-use std::{error::Error, fmt::Debug};
+use std::{error::Error, fmt::Debug, sync::Arc};
 use tokio::sync::broadcast::{Receiver, Sender};
 
 #[cfg(feature = "in-mem")]
 pub mod in_mem;
 
 #[async_trait]
-pub trait Store: Send + Sync + Clone + 'static {
+pub trait Store: Send + Sync + 'static {
     async fn create<E: Entity>(&self, entity: &E) -> Result<(), Box<dyn Error>>;
     async fn create_singleton<S: Singleton>(&self, entity: &S) -> Result<(), Box<dyn Error>> {
         self.create(&SingletonEntity::new(entity.clone())).await
@@ -28,7 +28,7 @@ pub trait Store: Send + Sync + Clone + 'static {
         self.get_by_id::<SingletonEntity<S>>(&S::ENTITY_ID.to_owned()).await.map(|se| se.0)
     }
     async fn watch<E: Entity>(&self, channel: Sender<Event<E>>) -> Result<(), Box<dyn Error>>;
-    async fn watch_singleton<S: Singleton>(&self, channel: Sender<SingletonEvent<S>>, capacity: usize) -> Result<(), Box<dyn Error>> {
+    async fn watch_singleton<S: Singleton>(self: Arc<Self>, channel: Sender<SingletonEvent<S>>, capacity: usize) -> Result<(), Box<dyn Error>> {
         let (tx, mut rx) = tokio::sync::broadcast::channel(capacity);
         let clone = self.clone();
         let job = tokio::spawn(async move { clone.watch::<SingletonEntity<S>>(tx).await.unwrap(); });
